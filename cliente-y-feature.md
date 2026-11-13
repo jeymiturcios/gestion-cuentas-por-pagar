@@ -18,7 +18,7 @@
 asesora de ventas en campo.
 
 **Contexto del negocio:** Grupo Multicables de Cortés adquiere bienes y servicios de
-múltiples proveedores (materiales, transporte, servicios de red, etc.). Hoy el área
+múltiples proveedores (materiales, servicios de red, etc.). Hoy el área
 administrativa controla cada cuenta por pagar en hojas de Excel, lo que dificulta conocer
 el saldo real, cumplir los vencimientos y resguardar la documentación.
 
