@@ -15,6 +15,7 @@
 | Usuarios del sistema | Gerente administrativa y Analista contable |
 
 **Cómo se conoció al cliente:** Se conocio a través de la madre de la estudiante, ya que ella labora para la empresa como 
+asesora de ventas en campo.
 
 **Contexto del negocio:** Grupo Multicables de Cortés adquiere bienes y servicios de
 múltiples proveedores (materiales, transporte, servicios de red, etc.). Hoy el área
