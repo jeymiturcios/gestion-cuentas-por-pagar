@@ -158,3 +158,33 @@ create index idx_facturas_empresa_vencimiento on facturas (empresa_id, fecha_ven
 create index idx_facturas_proveedor           on facturas (proveedor_id);
 create index idx_aplic_factura                on pago_aplicaciones (factura_id);
 create index idx_pagos_empresa_fecha          on pagos (empresa_id, fecha);
+
+--La vista que calcula el saldo
+create view facturas_saldo with (security_invoker = true) as
+select f.id,
+       f.empresa_id,
+       f.numero_factura,
+       f.total,
+       coalesce(sum(a.monto_aplicado), 0)           as pagado,
+       f.total - coalesce(sum(a.monto_aplicado), 0) as saldo,
+       case
+         when f.total - coalesce(sum(a.monto_aplicado), 0) <= 0 then 'PAGADA'
+         when f.fecha_vencimiento < current_date               then 'VENCIDA'
+         when coalesce(sum(a.monto_aplicado), 0) > 0           then 'PARCIAL'
+         else 'PENDIENTE'
+       end as estado_calculado
+from facturas f
+left join pago_aplicaciones a on a.factura_id = f.id
+group by f.id;
+
+--Activar la seguridad por filas
+alter table empresas          enable row level security;
+alter table usuarios          enable row level security;
+alter table empresa_usuarios  enable row level security;
+alter table proveedores       enable row level security;
+alter table facturas          enable row level security;
+alter table adjuntos          enable row level security;
+alter table pagos             enable row level security;
+alter table pago_aplicaciones enable row level security;
+alter table auditoria         enable row level security;
+
