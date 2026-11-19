@@ -89,4 +89,55 @@ create table facturas (
     references proveedores (id, empresa_id) on delete restrict
 );
 
---
+--Pagos- se haran por cheque o transferencia
+create table pagos (
+  id            uuid primary key default gen_random_uuid(),
+  empresa_id    uuid not null references empresas(id) on delete cascade,
+  proveedor_id  uuid not null,
+  fecha         date not null,
+  monto         numeric(14,2) not null check (monto > 0),
+  moneda        tipo_moneda not null default 'HNL',
+  tipo_cambio   numeric(12,4) not null default 1 check (tipo_cambio > 0),
+  forma_pago    forma_pago not null,
+  banco         banco not null,
+  numero_cuenta text not null,
+  referencia    text not null,
+  nota          text,
+  created_by    uuid references usuarios(id),
+  created_at    timestamptz not null default now(),
+  constraint uq_pagos_id_empresa unique (id, empresa_id),
+  constraint fk_pagos_proveedor_empresa
+    foreign key (proveedor_id, empresa_id)
+    references proveedores (id, empresa_id) on delete restrict
+);
+
+--La tabla que conecta pagos con facturas:
+create table pago_aplicaciones (
+  pago_id        uuid not null,
+  factura_id     uuid not null,
+  empresa_id     uuid not null,
+  monto_aplicado numeric(14,2) not null check (monto_aplicado > 0),
+  primary key (pago_id, factura_id),
+  constraint fk_aplic_pago
+    foreign key (pago_id, empresa_id)
+    references pagos (id, empresa_id) on delete cascade,
+  constraint fk_aplic_factura
+    foreign key (factura_id, empresa_id)
+    references facturas (id, empresa_id) on delete restrict
+);
+
+--Adjuntos: como se adjuntaran las facturas que le envie el proveedor
+create table adjuntos (
+  id             uuid primary key default gen_random_uuid(),
+  empresa_id     uuid not null references empresas(id) on delete cascade,
+  factura_id     uuid not null,
+  nombre_archivo text not null,
+  mime_type      text not null,
+  tamano_bytes   bigint not null check (tamano_bytes > 0),
+  url            text not null,
+  created_at     timestamptz not null default now(),
+  constraint fk_adjuntos_factura_empresa
+    foreign key (factura_id, empresa_id)
+    references facturas (id, empresa_id) on delete cascade
+);
+
