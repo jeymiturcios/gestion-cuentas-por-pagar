@@ -141,3 +141,20 @@ create table adjuntos (
     references facturas (id, empresa_id) on delete cascade
 );
 
+--la tabla de auditoria
+create table auditoria (
+  id         bigserial primary key,
+  empresa_id uuid references empresas(id) on delete set null,
+  usuario_id uuid references usuarios(id),
+  accion     text not null,
+  entidad    text not null,
+  entidad_id text,
+  detalle    jsonb,
+  created_at timestamptz not null default now()
+);
+
+--los indices
+create index idx_facturas_empresa_vencimiento on facturas (empresa_id, fecha_vencimiento);
+create index idx_facturas_proveedor           on facturas (proveedor_id);
+create index idx_aplic_factura                on pago_aplicaciones (factura_id);
+create index idx_pagos_empresa_fecha          on pagos (empresa_id, fecha);
