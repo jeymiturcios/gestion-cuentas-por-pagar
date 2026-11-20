@@ -1,0 +1,190 @@
+-- ============================================================
+-- Sistema de Gestion de Cuentas por Pagar
+-- Esquema de base de datos - PostgreSQL (Supabase)
+-- Codigo de verificacion: LEARN-CAP-1DDC923F
+-- ============================================================
+
+--Los tipos enumerados:
+create type rol_usuario as enum ('GERENTE', 'ANALISTA');
+create type tipo_moneda as enum ('HNL', 'USD');
+create type forma_pago  as enum ('CHEQUE', 'TRANSFERENCIA');
+create type banco       as enum ('BAC', 'OCCIDENTE', 'ATLANTIDA', 'FICOHSA', 'BANPAIS', 'PROMERICA');
+
+--La tabla de empresas:
+create table empresas (
+  id               uuid primary key default gen_random_uuid(),
+  razon_social     text not null,
+  nombre_comercial text not null,
+  rtn              text not null unique,
+  activo           boolean not null default true,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+
+--Usuarios:
+create table usuarios (
+  id            uuid primary key default gen_random_uuid(),
+  nombre        text not null,
+  email         text not null unique,
+  password_hash text not null,
+  activo        boolean not null default true,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+--La tabla que une a la empresa con usuarios
+create table empresa_usuarios (
+  empresa_id uuid not null references empresas(id) on delete cascade,
+  usuario_id uuid not null references usuarios(id) on delete cascade,
+  rol        rol_usuario not null default 'ANALISTA',
+  activo     boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (empresa_id, usuario_id)
+);
+
+
+--Proveedores:
+create table proveedores (
+  id               uuid primary key default gen_random_uuid(),
+  empresa_id       uuid not null references empresas(id) on delete cascade,
+  razon_social     text not null,
+  nombre_comercial text not null,
+  rtn              text,
+  telefono         text,
+  email            text,
+  activo           boolean not null default true,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  constraint uq_proveedores_id_empresa  unique (id, empresa_id),
+  constraint uq_proveedores_rtn_empresa unique (empresa_id, rtn)
+);
+
+
+--Facturas:
+create table facturas (
+  id                uuid primary key default gen_random_uuid(),
+  empresa_id        uuid not null references empresas(id) on delete cascade,
+  proveedor_id      uuid not null,
+  numero_factura    text not null,
+  cai               text,
+  rango_cai         text,
+  fecha_factura     date not null,
+  dias_credito      integer not null default 30 check (dias_credito >= 0),
+  fecha_vencimiento date not null,
+  moneda            tipo_moneda not null default 'HNL',
+  tipo_cambio       numeric(12,4) not null default 1 check (tipo_cambio > 0),
+  subtotal          numeric(14,2) not null check (subtotal >= 0),
+  isv_porcentaje    numeric(5,2) not null default 15 check (isv_porcentaje between 0 and 100),
+  isv               numeric(14,2) not null check (isv >= 0),
+  total             numeric(14,2) not null check (total >= 0),
+  concepto          text,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  constraint ck_facturas_total check (total = subtotal + isv),
+  constraint uq_facturas_id_empresa     unique (id, empresa_id),
+  constraint uq_facturas_numero_empresa unique (empresa_id, proveedor_id, numero_factura),
+  constraint fk_facturas_proveedor_empresa
+    foreign key (proveedor_id, empresa_id)
+    references proveedores (id, empresa_id) on delete restrict
+);
+
+--Pagos- se haran por cheque o transferencia
+create table pagos (
+  id            uuid primary key default gen_random_uuid(),
+  empresa_id    uuid not null references empresas(id) on delete cascade,
+  proveedor_id  uuid not null,
+  fecha         date not null,
+  monto         numeric(14,2) not null check (monto > 0),
+  moneda        tipo_moneda not null default 'HNL',
+  tipo_cambio   numeric(12,4) not null default 1 check (tipo_cambio > 0),
+  forma_pago    forma_pago not null,
+  banco         banco not null,
+  numero_cuenta text not null,
+  referencia    text not null,
+  nota          text,
+  created_by    uuid references usuarios(id),
+  created_at    timestamptz not null default now(),
+  constraint uq_pagos_id_empresa unique (id, empresa_id),
+  constraint fk_pagos_proveedor_empresa
+    foreign key (proveedor_id, empresa_id)
+    references proveedores (id, empresa_id) on delete restrict
+);
+
+--La tabla que conecta pagos con facturas:
+create table pago_aplicaciones (
+  pago_id        uuid not null,
+  factura_id     uuid not null,
+  empresa_id     uuid not null,
+  monto_aplicado numeric(14,2) not null check (monto_aplicado > 0),
+  primary key (pago_id, factura_id),
+  constraint fk_aplic_pago
+    foreign key (pago_id, empresa_id)
+    references pagos (id, empresa_id) on delete cascade,
+  constraint fk_aplic_factura
+    foreign key (factura_id, empresa_id)
+    references facturas (id, empresa_id) on delete restrict
+);
+
+--Adjuntos: como se adjuntaran las facturas que le envie el proveedor
+create table adjuntos (
+  id             uuid primary key default gen_random_uuid(),
+  empresa_id     uuid not null references empresas(id) on delete cascade,
+  factura_id     uuid not null,
+  nombre_archivo text not null,
+  mime_type      text not null,
+  tamano_bytes   bigint not null check (tamano_bytes > 0),
+  url            text not null,
+  created_at     timestamptz not null default now(),
+  constraint fk_adjuntos_factura_empresa
+    foreign key (factura_id, empresa_id)
+    references facturas (id, empresa_id) on delete cascade
+);
+
+--la tabla de auditoria
+create table auditoria (
+  id         bigserial primary key,
+  empresa_id uuid references empresas(id) on delete set null,
+  usuario_id uuid references usuarios(id),
+  accion     text not null,
+  entidad    text not null,
+  entidad_id text,
+  detalle    jsonb,
+  created_at timestamptz not null default now()
+);
+
+--los indices
+create index idx_facturas_empresa_vencimiento on facturas (empresa_id, fecha_vencimiento);
+create index idx_facturas_proveedor           on facturas (proveedor_id);
+create index idx_aplic_factura                on pago_aplicaciones (factura_id);
+create index idx_pagos_empresa_fecha          on pagos (empresa_id, fecha);
+
+--La vista que calcula el saldo
+create view facturas_saldo with (security_invoker = true) as
+select f.id,
+       f.empresa_id,
+       f.numero_factura,
+       f.total,
+       coalesce(sum(a.monto_aplicado), 0)           as pagado,
+       f.total - coalesce(sum(a.monto_aplicado), 0) as saldo,
+       case
+         when f.total - coalesce(sum(a.monto_aplicado), 0) <= 0 then 'PAGADA'
+         when f.fecha_vencimiento < current_date               then 'VENCIDA'
+         when coalesce(sum(a.monto_aplicado), 0) > 0           then 'PARCIAL'
+         else 'PENDIENTE'
+       end as estado_calculado
+from facturas f
+left join pago_aplicaciones a on a.factura_id = f.id
+group by f.id;
+
+--Activar la seguridad por filas
+alter table empresas          enable row level security;
+alter table usuarios          enable row level security;
+alter table empresa_usuarios  enable row level security;
+alter table proveedores       enable row level security;
+alter table facturas          enable row level security;
+alter table adjuntos          enable row level security;
+alter table pagos             enable row level security;
+alter table pago_aplicaciones enable row level security;
+alter table auditoria         enable row level security;
+
