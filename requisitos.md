@@ -62,11 +62,20 @@ El sistema debe permitir crear y mantener perfiles de proveedores con, al menos:
 - Dos perfiles: Gerente administrativa y Analista contable.
 - Toda la información debe manejarse de forma confidencial: acceso solo con sesión, archivos privados y datos ficticios en repositorio, demostraciones y capturas.
 
-## Puntos pendientes de confirmar con la cliente
+## Decisiones confirmadas por la cliente
 
-1. Si un mismo pago puede distribuirse entre varias facturas desde la pantalla de pago, y con qué prioridad.
-2. Manejo de dos monedas: saldos separados por moneda o conversión con tipo de cambio.
-3. Si el ISV se digita o se calcula, y con qué porcentaje.
-4. Formato del rango de CAI: código del CAI, número inicial, número final y fecha límite de emisión.
-5. Si se requieren recargos por mora, y las líneas de importe exento y exonerado de la factura.
+Confirmadas por correo de la Gerente administrativa (07/11/2026 y 19/11/2026):
 
+1. **ISV:** se aplica 15% de forma predeterminada, con la opción de modificarlo
+   en cada factura.
+2. **Tipo de cambio:** se toma el del Banco Central de Honduras, sin alterar el
+   histórico. Cada factura y cada pago conservan la tasa vigente al momento de
+   registrarse; una tasa publicada después no modifica documentos anteriores.
+3. **CAI:** se configura una sola vez por proveedor, incluyendo el rango
+   autorizado y la fecha de vencimiento. El sistema debe alertar cuando un CAI
+   esté próximo a vencer.
+4. **Registro de pagos:** tanto la Gerente administrativa como la Analista
+   contable pueden registrar pagos, dejando siempre constancia de quién realizó
+   cada movimiento.
+5. **Aplicación de pagos:** los abonos se aplican por factura individual, y un
+   mismo cheque puede pagar dos o más facturas según si están vencidas.
