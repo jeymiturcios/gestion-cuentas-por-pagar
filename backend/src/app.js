@@ -65,6 +65,27 @@ app.post('/api/proveedores', async (req, res) => {
 
   res.status(201).json(data);
 });
+//agregar listado de proveedores activos por empresa
+app.get('/api/proveedores', async (req, res) => {
+  const { empresa_id } = req.query;
+
+  if (!empresa_id) {
+    return res.status(400).json({ error: 'La empresa es obligatoria' });
+  }
+
+  const { data, error } = await supabase
+    .from('proveedores')
+    .select('*')
+    .eq('empresa_id', empresa_id)
+    .eq('activo', true)
+    .order('razon_social');
+
+  if (error) {
+    return res.status(500).json({ error: 'No se pudieron obtener los proveedores' });
+  }
+
+  res.json(data);
+});
 
 app.use((req, res) => {
   res.status(404).json({
