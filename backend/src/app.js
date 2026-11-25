@@ -65,7 +65,7 @@ app.post('/api/proveedores', async (req, res) => {
 
   res.status(201).json(data);
 });
-//agregar listado de proveedores activos por empresa
+
 app.get('/api/proveedores', async (req, res) => {
   const { empresa_id } = req.query;
 
@@ -82,6 +82,61 @@ app.get('/api/proveedores', async (req, res) => {
 
   if (error) {
     return res.status(500).json({ error: 'No se pudieron obtener los proveedores' });
+  }
+
+  res.json(data);
+});
+
+app.put('/api/proveedores/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    empresa_id, razon_social, nombre_comercial, rtn, telefono, email,
+    cai, cai_rango_desde, cai_rango_hasta, cai_fecha_limite
+  } = req.body;
+
+  if (!empresa_id) {
+    return res.status(400).json({ error: 'La empresa es obligatoria' });
+  }
+
+  if (!razon_social || razon_social.trim() === '') {
+    return res.status(400).json({ error: 'La razon social es obligatoria' });
+  }
+
+  if (!nombre_comercial || nombre_comercial.trim() === '') {
+    return res.status(400).json({ error: 'El nombre comercial es obligatorio' });
+  }
+
+  if (rtn && !/^\d{14}$/.test(rtn)) {
+    return res.status(400).json({ error: 'El RTN debe tener 14 digitos' });
+  }
+
+  if (cai) {
+    if (!cai_rango_desde || !cai_rango_hasta) {
+      return res.status(400).json({ error: 'El CAI requiere el rango autorizado completo' });
+    }
+    if (!cai_fecha_limite) {
+      return res.status(400).json({ error: 'El CAI requiere la fecha limite de emision' });
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('proveedores')
+    .update({
+      razon_social, nombre_comercial, rtn, telefono, email,
+      cai, cai_rango_desde, cai_rango_hasta, cai_fecha_limite,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .eq('empresa_id', empresa_id)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    return res.status(500).json({ error: 'No se pudo actualizar el proveedor' });
+  }
+
+  if (!data) {
+    return res.status(404).json({ error: 'Proveedor no encontrado' });
   }
 
   res.json(data);
