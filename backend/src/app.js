@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const rutasProveedores = require('./rutas/proveedores.rutas');
 
 const NOMBRE_SERVICIO = 'cuentas-por-pagar-api';
 
@@ -16,6 +17,8 @@ app.get('/api/health', (req, res) => {
     fecha: new Date().toISOString()
   });
 });
+
+app.use('/api/proveedores', rutasProveedores);
 
 app.use((req, res) => {
   res.status(404).json({
