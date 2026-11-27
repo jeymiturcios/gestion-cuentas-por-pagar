@@ -2,8 +2,41 @@ const express = require('express');
 const cors = require('cors');
 const supabase = require('./supabase');
 
-
 const NOMBRE_SERVICIO = 'cuentas-por-pagar-api';
+
+function validarProveedor(datos) {
+  const {
+    empresa_id, razon_social, nombre_comercial, rtn,
+    cai, cai_rango_desde, cai_rango_hasta, cai_fecha_limite
+  } = datos;
+
+  if (!empresa_id) {
+    return 'La empresa es obligatoria';
+  }
+
+  if (!razon_social || razon_social.trim() === '') {
+    return 'La razon social es obligatoria';
+  }
+
+  if (!nombre_comercial || nombre_comercial.trim() === '') {
+    return 'El nombre comercial es obligatorio';
+  }
+
+  if (rtn && !/^\d{14}$/.test(rtn)) {
+    return 'El RTN debe tener 14 digitos';
+  }
+
+  if (cai) {
+    if (!cai_rango_desde || !cai_rango_hasta) {
+      return 'El CAI requiere el rango autorizado completo';
+    }
+    if (!cai_fecha_limite) {
+      return 'El CAI requiere la fecha limite de emision';
+    }
+  }
+
+  return null;
+}
 
 const app = express();
 
@@ -25,29 +58,9 @@ app.post('/api/proveedores', async (req, res) => {
     cai, cai_rango_desde, cai_rango_hasta, cai_fecha_limite
   } = req.body;
 
-  if (!empresa_id) {
-    return res.status(400).json({ error: 'La empresa es obligatoria' });
-  }
-
-  if (!razon_social || razon_social.trim() === '') {
-    return res.status(400).json({ error: 'La razon social es obligatoria' });
-  }
-
-  if (!nombre_comercial || nombre_comercial.trim() === '') {
-    return res.status(400).json({ error: 'El nombre comercial es obligatorio' });
-  }
-
-  if (rtn && !/^\d{14}$/.test(rtn)) {
-    return res.status(400).json({ error: 'El RTN debe tener 14 digitos' });
-  }
-
-  if (cai) {
-    if (!cai_rango_desde || !cai_rango_hasta) {
-      return res.status(400).json({ error: 'El CAI requiere el rango autorizado completo' });
-    }
-    if (!cai_fecha_limite) {
-      return res.status(400).json({ error: 'El CAI requiere la fecha limite de emision' });
-    }
+  const errorDeValidacion = validarProveedor(req.body);
+  if (errorDeValidacion) {
+    return res.status(400).json({ error: errorDeValidacion });
   }
 
   const { data, error } = await supabase
@@ -94,29 +107,9 @@ app.put('/api/proveedores/:id', async (req, res) => {
     cai, cai_rango_desde, cai_rango_hasta, cai_fecha_limite
   } = req.body;
 
-  if (!empresa_id) {
-    return res.status(400).json({ error: 'La empresa es obligatoria' });
-  }
-
-  if (!razon_social || razon_social.trim() === '') {
-    return res.status(400).json({ error: 'La razon social es obligatoria' });
-  }
-
-  if (!nombre_comercial || nombre_comercial.trim() === '') {
-    return res.status(400).json({ error: 'El nombre comercial es obligatorio' });
-  }
-
-  if (rtn && !/^\d{14}$/.test(rtn)) {
-    return res.status(400).json({ error: 'El RTN debe tener 14 digitos' });
-  }
-
-  if (cai) {
-    if (!cai_rango_desde || !cai_rango_hasta) {
-      return res.status(400).json({ error: 'El CAI requiere el rango autorizado completo' });
-    }
-    if (!cai_fecha_limite) {
-      return res.status(400).json({ error: 'El CAI requiere la fecha limite de emision' });
-    }
+  const errorDeValidacion = validarProveedor(req.body);
+  if (errorDeValidacion) {
+    return res.status(400).json({ error: errorDeValidacion });
   }
 
   const { data, error } = await supabase
